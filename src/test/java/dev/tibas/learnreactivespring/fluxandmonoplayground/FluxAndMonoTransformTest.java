@@ -4,6 +4,11 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+import java.util.Arrays;
+import java.util.List;
+
+import static reactor.core.scheduler.Schedulers.parallel;
+
 public class FluxAndMonoTransformTest {
 
     String[] names = new String[]{"Alysson", "Tibério", "Dulci", "Sergi"};
@@ -60,5 +65,28 @@ public class FluxAndMonoTransformTest {
                 .expectNext("ALYSSON", "TIBÉRIO")
                 .verifyComplete();
 
+    }
+
+    @Test
+    public void transformUsingFlatMapp() {
+
+        Flux<String> lettersFlux = Flux.fromIterable(Arrays.asList("A", "B", "C", "D", "E", "F"))
+                .window(2)
+                .flatMapSequential(letraFlux -> letraFlux.map(this::convertToList).subscribeOn(parallel()))
+                .flatMap(Flux::fromIterable)
+                .log();
+
+        StepVerifier.create(lettersFlux)
+                .expectNextCount(12)
+                .verifyComplete();
+    }
+
+    private List<String> convertToList(String value) {
+        try {
+            Thread.sleep(1000L);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return Arrays.asList(value, "newValue");
     }
 }
