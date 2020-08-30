@@ -3,6 +3,7 @@ package dev.tibas.learnreactivespring.fluxandmonoplayground;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+import reactor.test.scheduler.VirtualTimeScheduler;
 
 import java.time.Duration;
 
@@ -56,14 +57,15 @@ public class FluxAndMonoCombineTest {
     @Test
     public void combineUsingConcat_withDelay() {
 
+        VirtualTimeScheduler.getOrSet();
+
         Flux<String> flux1 = Flux.just("A", "B", "C").delayElements(Duration.ofSeconds(1));
         Flux<String> flux2 = Flux.just("D", "E", "F").delayElements(Duration.ofSeconds(1));
 
-        Flux<String> mergedFlux = Flux.concat(flux1, flux2);
-
-        StepVerifier.create(mergedFlux.log())
+        StepVerifier.withVirtualTime(() -> Flux.concat(flux1, flux2).log())
                 .expectSubscription()
-                .expectNext("A", "B", "C", "D", "E", "F")
+                .thenAwait(Duration.ofSeconds(6))
+                .expectNextCount(6)
                 .verifyComplete();
 
     }
